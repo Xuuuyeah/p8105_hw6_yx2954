@@ -117,3 +117,40 @@ ci_log_beta0_beta1 <- quantile(bootstrap_results$log_beta0_beta1, c(0.025, 0.975
 
 The 95% CI of r2 is (0.8940791, 0.9271204), the 95% CI of log(beta0 * beta1) is (1.964630, 2.058959)
 
+# Problem 2
+
+Load data and data cleaning
+```{r}
+homicide_df <- read_csv("https://raw.githubusercontent.com/washingtonpost/data-homicides/master/homicide-data.csv") 
+
+homicide_df = homicide_df |>
+  mutate(city_state = paste(city, state, sep = ", "),
+         status = if_else(disposition == "Closed by arrest", 1, 0),
+         victim_age = as.numeric(victim_age)
+           ) |>  
+  filter(
+    !city_state %in% c("Dallas, TX", "Phoenix, AZ", "Kansas City, MO", "Tulsa, AL"),
+    victim_race %in% c("White", "Black")) |>
+  select(-city, - state, -disposition)
+```
+
+Logistic regression in Baltimore, MD
+
+```{r}
+baltimore_df = homicide_df |>
+  filter(city_state == "Baltimore, MD")
+
+baltimore_glm = glm(status ~ victim_age + victim_sex + victim_race,
+                     data = baltimore_df,
+                     family = binomial()) |>
+  broom::tidy(exponentiate = TRUE, conf.int = TRUE)
+
+baltimore_or = baltimore_glm |>
+  filter(term == "victim_sexMale") |>
+  select(term, estimate, conf.low, conf.high)
+
+print(baltimore_or)
+```
+The Odd ratio for solving homicides comparing male victims to female victims is 0.4255117, with a 95% CI of (0.3241908, 0.5575508). It suggests that the result is significant as the higher boundary is smaller than 1, and the probability of solving homicides of male victims is 42.6% as likely as that of female victims.
+
+
