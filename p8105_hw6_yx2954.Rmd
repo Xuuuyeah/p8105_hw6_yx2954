@@ -186,3 +186,67 @@ all_city_plot = all_city_results |>
 
 print(all_city_plot)
 ```
+
+# Problem 3
+
+Load and clean data
+```{r}
+bw_df = read_csv("https://p8105.com/data/birthweight.csv") |>
+  mutate(
+      babysex = recode_factor(babysex, `1` = "Male", `2` = "Female"), 
+      frace = recode_factor(frace, `1` = "White", `2` = "Black", `3` = "Asian", 
+                                   `4` = "Puerto Rican", `8` = "Other", `9` = "Unknown"),
+      mrace = recode_factor(mrace, `1` = "White", `2` = "Black", `3` = "Asian", 
+                                   `4` = "Puerto Rican", `8` = "Other"), 
+      malform = recode_factor(malform, `0` = "Absent", `1` = "Present"), 
+  )
+    
+sapply(bw_df, function(x) sum(is.na(x)))
+summary(bw_df)
+```
+
+Then build my model:
+
+Model Hypothesis: Based on empirical knowledge, birth weight may be linearly related to pre-pregnant weight and gestational age in weeks. Here is my model:
+```{r}
+fit_hypothetical = lm(bwt ~ ppwt +  gaweeks,  data = bw_df)
+```
+
+```{r}
+bw_df = bw_df |>
+  modelr::add_predictions(fit_hypothetical) |>
+  modelr::add_residuals(fit_hypothetical)
+
+```
+
+```{r residuals_vs_gaweeks, fig.cap="residuals_vs_gaweeks"}
+bw_df |> 
+  modelr::add_residuals(fit_hypothetical) |> 
+  ggplot(aes(x = gaweeks, y = resid)) + geom_point() + 
+  labs(
+    x = "Gestational Age", 
+    y = "Residuals",
+    title = "Residuals vs Gestational Age"
+  ) +
+  theme_minimal()
+```
+```{r residuals_vs_ppwt, fig.cap="residuals_vs_ppwt"}
+bw_df |> 
+  modelr::add_residuals(fit_hypothetical) |> 
+  ggplot(aes(x = ppwt, y = resid)) +
+  geom_point() +
+  labs(
+    x = "Pre-pregnancy Weight (ppwt)", 
+    y = "Residuals",
+    title = "Residuals vs Pre-pregnancy Weight"
+  ) +
+  theme_minimal()
+
+```
+```{r qqplot_residual, fig.cap="qqplot_residual"}
+residuals_hypothetical = residuals(fit_hypothetical)
+
+qqnorm(residuals_hypothetical, main = "QQ Plot of Residuals")
+qqline(residuals_hypothetical, col = "red", lwd = 2)
+```
+The qq plot shows that the residuals are approximately approach normal distribution.
